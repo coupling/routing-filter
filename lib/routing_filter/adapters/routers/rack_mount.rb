@@ -30,13 +30,18 @@ Rack::Mount::CodeGeneration.class_eval do
       params || {}
     end
 
-    request.env['PATH_INFO'] = original_path # hmm ...
-    return nil unless route
-
-    if block_given?
-      return block.call(route, matches, params)
-    else
-      return route, matches, params
+    recognize_without_filtering(request) do |route, matches, params|
+      request.env['PATH_INFO'] = original_path
+      filters.run(:around_recognize, path, request.env) do
+        params || {}
+      end
+      request.env['PATH_INFO'] = original_path
+      if block_given?
+        block.call(route, matches, params)
+      else
+        return route, matches, params
+      end
     end
+    nil
   end
 end
